@@ -1,22 +1,24 @@
+#![allow(unused)]
+
 use {
-    color_eyre::eyre::{Context, Result},
+    color_eyre::eyre::{Context, ContextCompat, Result},
     rodio::{Decoder, OutputStream, Sink, Source},
+    rust_embed::Embed,
     std::{
-        fs::File,
+        io::Cursor,
         sync::{Arc, Mutex},
         thread,
     },
 };
 
+#[derive(Embed)]
+#[folder = "assets"]
+pub struct Asset;
+
 #[derive(Clone)]
 pub struct SoundPlayer {
     stream: Arc<OutputStream>,
     music_sink: Arc<Mutex<Option<Sink>>>,
-    death_sound: Arc<String>,
-    jump_sound: Arc<String>,
-    high_score_sound: Arc<String>,
-    bg_music: Arc<String>,
-    death_screen_music: Arc<String>,
 }
 
 impl Default for SoundPlayer {
@@ -27,11 +29,6 @@ impl Default for SoundPlayer {
         Self {
             stream: Arc::new(stream_handle),
             music_sink: Arc::new(Mutex::new(None)),
-            bg_music: Arc::new("assets/bgmusic.mp3".to_string()),
-            death_sound: Arc::new("assets/die.ogg".to_string()),
-            death_screen_music: Arc::new("assets/death_screen.mp3".to_string()),
-            jump_sound: Arc::new("assets/jump.ogg".to_string()),
-            high_score_sound: Arc::new("assets/new_high_score.ogg".to_string()),
         }
     }
 }
@@ -44,10 +41,11 @@ impl SoundPlayer {
     pub fn play_bg_music(&self) -> Result<()> {
         self.stop_music();
 
-        let file = File::open(self.bg_music.as_str())
-            .with_context(|| format!("Failed to open background music: {}", self.bg_music))?;
+        let file_data = Asset::get("bgmusic.mp3")
+            .context("Failed to load background music from embedded assets")?;
 
-        let source = Decoder::try_from(file)
+        let cursor = Cursor::new(file_data.data);
+        let source = Decoder::new(cursor)
             .context("Failed to decode background music")?
             .repeat_infinite()
             .amplify(0.3);
@@ -66,14 +64,11 @@ impl SoundPlayer {
     pub fn play_death_screen_music(&self) -> Result<()> {
         self.stop_music();
 
-        let file = File::open(self.death_screen_music.as_str()).with_context(|| {
-            format!(
-                "Failed to open death screen music: {}",
-                self.death_screen_music
-            )
-        })?;
+        let file_data = Asset::get("death_screen.mp3")
+            .context("Failed to load death screen music from embedded assets")?;
 
-        let source = Decoder::try_from(file)
+        let cursor = Cursor::new(file_data.data);
+        let source = Decoder::new(cursor)
             .context("Failed to decode death screen music")?
             .repeat_infinite()
             .amplify(0.3);
@@ -114,34 +109,40 @@ impl SoundPlayer {
     }
 
     pub fn play_jump_sound(&self) -> Result<()> {
-        self.play_sound_effect_concurrent(self.jump_sound.clone(), 0.4)
+        self.play_sound_effect_concurrent("jump.ogg", 0.4)
     }
 
     pub fn play_death_sound(&self) -> Result<()> {
-        self.play_sound_effect_concurrent(self.death_sound.clone(), 0.5)
+        self.play_sound_effect_concurrent("die.ogg", 0.5)
     }
 
     pub fn play_high_score_sound(&self) -> Result<()> {
-        self.play_sound_effect_concurrent(self.high_score_sound.clone(), 0.5)
+        self.play_sound_effect_concurrent("new_high_score.ogg", 0.5)
     }
 
-    fn play_sound_effect_concurrent(&self, path: Arc<String>, volume: f32) -> Result<()> {
+    fn play_sound_effect_concurrent(&self, filename: &str, volume: f32) -> Result<()> {
         let stream = Arc::clone(&self.stream);
+        let filename = filename.to_string();
 
         thread::spawn(move || {
-            if let Err(e) = Self::play_sound_in_thread(stream, &path, volume) {
-                eprintln!("Failed to play sound effect {}: {}", path, e);
+            if let Err(e) = Self::play_sound_in_thread(stream, &filename, volume) {
+                eprintln!("Failed to play sound effect {}: {}", filename, e);
             }
         });
 
         Ok(())
     }
 
-    fn play_sound_in_thread(stream: Arc<OutputStream>, path: &str, volume: f32) -> Result<()> {
-        let file =
-            File::open(path).with_context(|| format!("Failed to open sound file: {}", path))?;
+    fn play_sound_in_thread(stream: Arc<OutputStream>, filename: &str, volume: f32) -> Result<()> {
+        let file_data = Asset::get(filename).with_context(|| {
+            format!(
+                "Failed to load sound file from embedded assets: {}",
+                filename
+            )
+        })?;
 
-        let source = Decoder::try_from(file)
+        let cursor = Cursor::new(file_data.data);
+        let source = Decoder::new(cursor)
             .context("Failed to decode sound")?
             .amplify(volume);
 

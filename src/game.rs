@@ -159,6 +159,8 @@ impl Game {
             eprintln!("Failed to play death sound: {}", e);
         }
 
+        std::thread::sleep(Duration::from_secs_f32(0.25));
+
         self.player.stop_music();
         if let Err(e) = self.player.play_death_screen_music() {
             eprintln!("Failed to play death screen music: {}", e);
