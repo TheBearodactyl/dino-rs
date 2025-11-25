@@ -68,10 +68,10 @@ impl Default for PhysicsConfig {
             ground_height: 3,
             default_fps: 60.0,
             physics_fps,
-            fixed_timestep: 1.0 / physics_fps,
-            gravity: 1.2,
-            jump_velocity: -8.0,
-            initial_speed: 6.0,
+            fixed_timestep: 0.03,
+            gravity: 1.5,
+            jump_velocity: -7.0,
+            initial_speed: 4.0,
             speed_increment: 0.002,
         }
     }
