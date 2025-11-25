@@ -117,7 +117,7 @@ impl SoundPlayer {
     }
 
     pub fn play_high_score_sound(&self) -> Result<()> {
-        self.play_sound_effect_concurrent("new_high_score.ogg", 0.5)
+        self.play_sound_effect_concurrent("new_high_score.mp3", 0.5)
     }
 
     fn play_sound_effect_concurrent(&self, filename: &str, volume: f32) -> Result<()> {
