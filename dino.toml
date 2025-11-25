@@ -1,0 +1,18 @@
+highscore_file = "highscore.txt"
+
+[physics]
+ground_height = 3
+default_fps = 60.0
+physics_fps = 144.0
+fixed_timestep = 0.03
+gravity = 1.5
+jump_velocity = -7.0
+initial_speed = 4.0
+speed_increment = 0.002
+
+[game]
+score_update_threshold = 6.0
+ptero_spawn_score = 200
+hard_obstacles_score = 500
+initial_cloud_count = 8
+cloud_speed_divisor = 4.0
